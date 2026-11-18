@@ -1,6 +1,20 @@
 from game import pos, Board, CellType, Cell
 import random
 
+class GameResult:
+	END_ZEROES: int = 0
+	SUM: int = 0
+	SCORE: float = 0
+	MARKS: int = 0
+	def __str__(self) -> str:
+		res: str  = f"""----------Game result----------
+	End score: {self.SCORE}
+	Zeroes: {self.END_ZEROES}
+	Marks: {self.MARKS}
+	Sum of numbers: {self.SUM}
+-------------------------------
+"""
+		return res
 def canPlaceOnBoard(b: Board,x: int,y: int, count: int, sum: int) -> bool:
 	type = b.get(x,y).Type
 	if type != CellType.EMPTY and type != CellType.ZERO:
@@ -79,42 +93,54 @@ def arrangeComposite(b: Board,x:int, y:int, _arr: list[int])-> list[int]:
 		new_pos: tuple[int, int] = (new_offset[0] + x,new_offset[1]+y)
 		arr[new_index] = leftToArrange.pop()
 	return arr
-b: Board = Board(size=7)
-canPlace: bool = True
-placed: bool = False
-zeroes: list[tuple[int,int]] = []
-positionsToCheck: list[tuple[int,int]] = []
-for x in range(b.Size):
-	for y in range(b.Size):
-		positionsToCheck.append((x,y))
-while canPlace:
-	canPlace = False
-	amountToPlace, sumToPlace = dicesRoll()
 
-	if len(zeroes) > 0:
-		print(f"Zeroes found: {zeroes}")
-		for zero in zeroes:
-			positionsToCheck.remove(zero)
-			positionsToCheck.insert(0,zero)
-		zeroes.clear()
-	
-	for c_pos in positionsToCheck:
-		x=c_pos[0]
-		y=c_pos[1]
-		if canPlaceOnBoard(b,x,y,amountToPlace,sumToPlace):
-			comp = composite(sumToPlace,amountToPlace)
-			comp = arrangeComposite(b,x,y,comp)
-			if 0 in comp:
-				for (index, element) in enumerate(comp):
-					if element == 0:
-						curr_offset = pos[index]
-						zeroes.append((curr_offset[0]+x,curr_offset[1]+y))
-			print(f"Placing at ({x},{y})"+(" (zero)" if b.get(x,y).Type==CellType.ZERO else ""))
-			b.placeMark(x,y,comp)
-			positionsToCheck.remove((x,y))
-			print(b)
-			
-			canPlace = True
-			break
-print(f"Game end! Score: {b.getScore()}")
+def playGame(b: Board) -> GameResult:
+	result: GameResult = GameResult()
+	canPlace: bool = True
+	zeroes: list[tuple[int,int]] = []
+	positionsToCheck: list[tuple[int,int]] = []
+	for x in range(b.Size):
+		for y in range(b.Size):
+			positionsToCheck.append((x,y))
+	while canPlace:
+		canPlace = False
+		amountToPlace, sumToPlace = dicesRoll()
+
+		if len(zeroes) > 0:
+			print(f"Zeroes found: {zeroes}")
+			result.END_ZEROES += len(zeroes)
+			for zero in zeroes:
+				positionsToCheck.remove(zero)
+				positionsToCheck.insert(0,zero)
+			zeroes.clear()
+		
+		for c_pos in positionsToCheck:
+			x=c_pos[0]
+			y=c_pos[1]
+			if canPlaceOnBoard(b,x,y,amountToPlace,sumToPlace):
+				cell_under: Cell = b.get(x,y)
+				comp = composite(sumToPlace,amountToPlace)
+				result.SUM += sumToPlace
+				result.MARKS += 1
+				comp = arrangeComposite(b,x,y,comp)
+				if 0 in comp:
+					for (index, element) in enumerate(comp):
+						if element == 0:
+							curr_offset = pos[index]
+							zeroes.append((curr_offset[0]+x,curr_offset[1]+y))
+				print(f"Placing at ({x},{y})"+(" (zero)" if cell_under.Type==CellType.ZERO else ""))
+				if cell_under.Type == CellType.ZERO:
+					result.END_ZEROES -= 1
+				b.placeMark(x,y,comp)
+				positionsToCheck.remove((x,y))
+				print(b)
+				
+				canPlace = True
+				break
+	result.SCORE = b.getScore()
+	return result
+b: Board = Board(size=7)
+result: GameResult = playGame(b)
+print(f"Game end!")
+print(result)
 				
