@@ -6,12 +6,16 @@ class GameResult:
 	SUM: int = 0
 	SCORE: float = 0
 	MARKS: int = 0
+	FILLED: int = 0
+	BOARD_SIZE: int = 0
 	def __str__(self) -> str:
+		p = int(self.FILLED/(self.BOARD_SIZE*self.BOARD_SIZE)*100)
 		res: str  = f"""----------Game result----------
 	End score: {self.SCORE}
 	Zeroes: {self.END_ZEROES}
 	Marks: {self.MARKS}
 	Sum of numbers: {self.SUM}
+	Filled cells: {self.FILLED} ({p}%)
 -------------------------------
 """
 		return res
@@ -99,9 +103,11 @@ def playGame(b: Board) -> GameResult:
 	canPlace: bool = True
 	zeroes: list[tuple[int,int]] = []
 	positionsToCheck: list[tuple[int,int]] = []
+	result.BOARD_SIZE = b.Size
 	for x in range(b.Size):
 		for y in range(b.Size):
 			positionsToCheck.append((x,y))
+	#random.shuffle(positionsToCheck)
 	while canPlace:
 		canPlace = False
 		amountToPlace, sumToPlace = dicesRoll()
@@ -122,6 +128,7 @@ def playGame(b: Board) -> GameResult:
 				comp = composite(sumToPlace,amountToPlace)
 				result.SUM += sumToPlace
 				result.MARKS += 1
+				result.FILLED += amountToPlace
 				comp = arrangeComposite(b,x,y,comp)
 				if 0 in comp:
 					for (index, element) in enumerate(comp):
@@ -131,6 +138,8 @@ def playGame(b: Board) -> GameResult:
 				print(f"Placing at ({x},{y})"+(" (zero)" if cell_under.Type==CellType.ZERO else ""))
 				if cell_under.Type == CellType.ZERO:
 					result.END_ZEROES -= 1
+				else:
+					result.FILLED += 1
 				b.placeMark(x,y,comp)
 				positionsToCheck.remove((x,y))
 				print(b)
