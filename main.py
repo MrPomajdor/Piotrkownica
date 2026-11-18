@@ -62,7 +62,6 @@ def placeComposite(b: Board,x:int, y:int, _arr: list[int])->None:
 	offsets: list[tuple[int,tuple[int,int]]] = [(index,pos) for (index, pos) in enumerate(pos.copy())]
 	random.shuffle(leftToArrange)
 	random.shuffle(offsets)
-	print(f"trying to place at ({x},{y}) target amount {len(_arr)}")
 	while len(leftToArrange) > 0:
 		new_offset: tuple[int,int]
 		new_index: int = -1
@@ -78,7 +77,6 @@ def placeComposite(b: Board,x:int, y:int, _arr: list[int])->None:
 			break
 		new_pos: tuple[int, int] = (new_offset[0] + x,new_offset[1]+y)
 		arr[new_index] = leftToArrange.pop()
-		print(f"placed {arr[new_index]} at {new_pos} left: {leftToArrange}")
 	b.placeMark(x,y,arr)
 
 b: Board = Board(size=7)
@@ -94,9 +92,12 @@ while canPlace:
 			break 
 		for y in range(b.Size):
 			if canPlaceOnBoard(b,x,y,amountToPlace,sumToPlace):
-				placeComposite(b,x,y,composite(sumToPlace,amountToPlace))
+				comp = composite(sumToPlace,amountToPlace)
+				print(f"Placing at ({x},{y})")
+				placeComposite(b,x,y,comp)
+				print(b)
 				placed = True
 				canPlace = True
 				break
-	print(b)
+	
 				
