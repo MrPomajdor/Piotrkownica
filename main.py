@@ -1,31 +1,28 @@
-from game import CellType
-
-
+from game import pos, Board, CellType, Cell
 import random
 
-
-from game import *
-
 def canPlaceOnBoard(b: Board,x: int,y: int, count: int, sum: int) -> bool:
-	if b.get(x,y).Type != CellType.EMPTY:
+	if b.get(x,y).Type != (CellType.EMPTY or CellType.ZERO):
 		return False
-	potentialCells: int = 8
-	x_edge: bool = x==0 or x==b.Size-1
-	y_edge: bool = y==0 or y==b.Size-1
-	if x_edge and y_edge: 
-		potentialCells = 3
-	else:
-		potentialCells -= 3 if x_edge else 0 
-		potentialCells -= 3 if y_edge else 0 
-	if potentialCells < count:
-		return False
-	nCount: int = b.getNeigbourCount(x,y)
-	nSum: int   = b.getNeigbourSum(x,y)
-	if nCount > count:
+	nSum: int   = 0
+	potential_cells: int = 8
+
+	for offset in pos:
+		curr_pos: tuple[int, int] = x+offset[0],y+offset[1]
+		if not b.isInBounds(curr_pos[0],curr_pos[1]):
+			potential_cells-=1
+			continue
+		cell: Cell = b.get(curr_pos[0],curr_pos[1])
+		if cell.Type != CellType.EMPTY:
+			if cell.Type == CellType.NUMBER:
+				nSum+=cell.getValue()
+			potential_cells-=1
+			continue
+	
+	if potential_cells < count:
 		return False
 	if nSum > sum:
 		return False
-	print(potentialCells,"potential cells")
 	return True
 
 def getMissingSum(b: Board,x: int,y: int, sum: int) -> int:
@@ -58,43 +55,48 @@ def composite(number: int, amount: int) -> list[int]:
 # returns (amount, sum)
 def dicesRoll()-> tuple[int,int]:
 	return (random.randrange(1,9),random.randrange(1,20))
+
 def placeComposite(b: Board,x:int, y:int, _arr: list[int])->None:
 	arr: list[int|None] = [None]*8
-	leftToArrange: list[int] = _arr
+	leftToArrange: list[int] = _arr.copy()
+	offsets: list[tuple[int,tuple[int,int]]] = [(index,pos) for (index, pos) in enumerate(pos.copy())]
 	random.shuffle(leftToArrange)
-	print(f"trying to place at {x},{y} target amount {len(_arr)}")
+	random.shuffle(offsets)
+	print(f"trying to place at ({x},{y}) target amount {len(_arr)}")
 	while len(leftToArrange) > 0:
-		index = random.randrange(0,8)
-		new_pos_x, new_pos_y = x+pos[index][0],y+pos[index][1]
-		if not b.isInBounds(new_pos_x,new_pos_y):
-			#print(f"not in bounds",new_pos_x,new_pos_y,leftToArrange,x,y)
-			continue
-		a: CellType = b.get(new_pos_x,new_pos_y).Type
-		if(arr[index] != None):
-			continue
-		arr[index] = leftToArrange.pop()
-		print(f"placed {arr[index]} {a} {new_pos_x} {new_pos_y} {pos[index]} {index}")
-	b.placeMark(x,y,numbers=arr)
-
+		new_offset: tuple[int,int]
+		new_index: int = -1
+		for offset in offsets:
+			potential_pos: tuple[int, int] = x+offset[1][0],y+offset[1][1]
+			if arr[offset[0]] != None or not b.isInBounds(potential_pos[0],potential_pos[1]) or b.get(potential_pos[0],potential_pos[1]).Type != CellType.EMPTY:
+				continue
+			new_index = offset[0]
+			new_offset = offset[1]
+			break
+		if new_index < 0:
+			raise Exception(f"No room left for placing! Left in array: {leftToArrange}")
+			break
+		new_pos: tuple[int, int] = (new_offset[0] + x,new_offset[1]+y)
+		arr[new_index] = leftToArrange.pop()
+		print(f"placed {arr[new_index]} at {new_pos} left: {leftToArrange}")
+	b.placeMark(x,y,arr)
 
 b: Board = Board(size=7)
 canPlace: bool = True
 placed: bool = False
-try:
-	while canPlace:
-		canPlace = False
-		amountToPlace, sumToPlace = dicesRoll()
 
-		for x in range(b.Size):
-			if placed:
-				placed = False
-				break 
-			for y in range(b.Size):
-				if canPlaceOnBoard(b,x,y,amountToPlace,sumToPlace):
-					placeComposite(b,x,y,composite(sumToPlace,amountToPlace))
-					placed = True
-					canPlace = True
-					break
-					
-except Exception as e:
-	print(f"{e.with_traceback(None)}\n{b}")
+while canPlace:
+	canPlace = False
+	amountToPlace, sumToPlace = dicesRoll()
+	for x in range(b.Size):
+		if placed:
+			placed = False
+			break 
+		for y in range(b.Size):
+			if canPlaceOnBoard(b,x,y,amountToPlace,sumToPlace):
+				placeComposite(b,x,y,composite(sumToPlace,amountToPlace))
+				placed = True
+				canPlace = True
+				break
+	print(b)
+				
