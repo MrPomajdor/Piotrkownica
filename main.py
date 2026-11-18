@@ -116,5 +116,5 @@ while canPlace:
 			
 			canPlace = True
 			break
-	
+print(f"Game end! Score: {b.getScore()}")
 				

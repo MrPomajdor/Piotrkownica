@@ -48,7 +48,18 @@ class Board:
     def _set(self,x: int, y: int, type: CellType, val: int=0) -> None:
         self.Cells[y][x].Type = type
         self.Cells[y][x].num_val = val
-        
+    def getScore(self) -> float:
+        res: float = 0
+        zeroes: int = 1
+        for x in range(self.Size):
+            for y in range(self.Size):
+                cell: Cell = self.get(x,y)
+                match(cell.Type):
+                    case CellType.ZERO:
+                        zeroes +=1
+                    case CellType.NUMBER:
+                        res += cell.getValue()
+        return res/zeroes
     def getNeigbourCount(self, x: int, y: int) -> int:
         res: int = 0
         for oy in range(-1,2):
