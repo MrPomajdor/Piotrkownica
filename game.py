@@ -57,7 +57,7 @@ class Board:
             for ox in range(-1,2):
                 if ox+x < 0 or ox+x>self.Size - 1:
                     continue
-                if self.Cells[ox+x][oy+y].Type == CellType.NUMBER:
+                if self.Cells[ox+x][oy+y].Type != CellType.EMPTY:
                     res+=1
         return res
     def isInBounds(self, x: int,y: int) -> bool:
@@ -114,8 +114,12 @@ class Board:
             i+=1
     @override
     def __str__(self) -> str:
-        res: str = ""
-        for row in self.Cells:
+        res: str = "  "
+        for x in range(self.Size):
+            res += f"{x}  "
+        res += "\n"
+        for index, row in enumerate(self.Cells):
+            res += str(index)
             for cell in row:
                 res += f"[{str(cell)}]"
             res += "\n"
