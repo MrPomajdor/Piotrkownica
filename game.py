@@ -1,4 +1,3 @@
-import random
 from enum import Enum
 from typing import override
 pos: list[tuple[int, int]] = [
@@ -12,12 +11,10 @@ class CellType(Enum):
         MARK = 1
         ZERO = 2
 class Cell:
-    Type: CellType = CellType.EMPTY
-    num_val: int = 0
     def __init__(self, cell_type: CellType, num_value: int = 0) -> None:
-        self.Type = cell_type
+        self.Type: CellType = cell_type
         if(self.Type == CellType.NUMBER):
-            self.num_val = num_value
+            self.num_val: int = num_value
     def getValue(self) -> int:
         if(self.Type == CellType.NUMBER):
             return self.num_val
@@ -35,10 +32,9 @@ class Cell:
             case CellType.ZERO:
                 return "Z"
 class Board:
-    Cells: list[list[Cell]]    = []
-    Size: int = 0
     def __init__(self, size: int):
-        self.Size = size
+        self.Size: int = size
+        self.Cells: list[list[Cell]] = []
         for y in range(size):
             self.Cells.append([])
             for _ in range(size):
@@ -59,6 +55,8 @@ class Board:
                         zeroes +=1
                     case CellType.NUMBER:
                         res += cell.getValue()
+                    case _:
+                        pass
         return res/zeroes
     def getNeigbourCount(self, x: int, y: int) -> int:
         res: int = 0
