@@ -29,7 +29,7 @@ class MarkPlaceBias(Flag):
 	SCAN = 2
 	CORNERS_FIRST = 8
 	ZEROES_FIRST = 16
-
+	FILL_FIRST_THEN_JOIN = 32
 class PlayerSettings:
 	def __init__(self, place_bias: MarkPlaceBias, board_size: int = 7, max_sum: int=20):
 		self.board_size: int = board_size
@@ -90,32 +90,40 @@ class GamePlayer:
 					self.positionsToCheck.remove(zero)
 					self.positionsToCheck.insert(0,zero)
 			self.zeroes.clear()
-		
+		matchingButCrowded: tuple[int,int] | None = None
 		for c_pos in self.positionsToCheck:
 			x=c_pos[0]
 			y=c_pos[1]
 			if self.canPlaceOnBoard(x,y,amountToPlace,sumToPlace):
-				cell_under: Cell = self.Board.get(x,y)
-				comp = self.composite(sumToPlace,amountToPlace)
-				self.result.Sum += sumToPlace
-				self.result.Marks += 1
-				self.result.Filled += amountToPlace
-				comp = self.arrangeComposite(x,y,comp)
-				if 0 in comp:
-					for (index, element) in enumerate(comp):
-						if element == 0:
-							curr_offset = pos[index]
-							self.zeroes.append((curr_offset[0]+x,curr_offset[1]+y))
-				#print(f"Placing at ({x},{y})"+(" (zero)" if cell_under.Type==CellType.ZERO else ""))
-				if cell_under.Type == CellType.ZERO:
-					self.result.EndZeroes -= 1
-				else:
-					self.result.Filled += 1
-				self.Board.placeMark(x,y,comp)
-				self.positionsToCheck.remove((x,y))
-				self.result.Score = self.Board.getScore()
+				if MarkPlaceBias.FILL_FIRST_THEN_JOIN in self.playSettings.placeBias and self.Board.getNeigbourCount(x,y) > 0:
+					matchingButCrowded = (x,y)
+					continue
+				self.placeMark(x,y,amountToPlace,sumToPlace)
 				return True
+		if matchingButCrowded:
+			self.placeMark(matchingButCrowded[0],matchingButCrowded[1],amountToPlace,sumToPlace)
+			return True
 		return False
+	def placeMark(self,x:int ,y: int,amountToPlace: int,sumToPlace: int) -> None:
+		cell_under: Cell = self.Board.get(x,y)
+		comp = self.composite(sumToPlace,amountToPlace)
+		self.result.Sum += sumToPlace
+		self.result.Marks += 1
+		self.result.Filled += amountToPlace
+		comp = self.arrangeComposite(x,y,comp)
+		if 0 in comp:
+			for (index, element) in enumerate(comp):
+				if element == 0:
+					curr_offset = pos[index]
+					self.zeroes.append((curr_offset[0]+x,curr_offset[1]+y))
+		#print(f"Placing at ({x},{y})"+(" (zero)" if cell_under.Type==CellType.ZERO else ""))
+		if cell_under.Type == CellType.ZERO:
+			self.result.EndZeroes -= 1
+		else:
+			self.result.Filled += 1
+		self.Board.placeMark(x,y,comp)
+		self.positionsToCheck.remove((x,y))
+		self.result.Score = self.Board.getScore()
 	def canPlaceOnBoard(self,x: int,y: int, count: int, sum: int) -> bool:
 		type = self.Board.get(x,y).Type
 		if type != CellType.EMPTY and type != CellType.ZERO:
