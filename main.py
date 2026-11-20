@@ -1,17 +1,26 @@
 
+from collector import AverageCollector, MinMaxCollector
 from sys import argv
 from player import GamePlayer, MarkPlaceBias, PlayerSettings
 
 gameCount: int = int(argv[1])
 playSettings: PlayerSettings = PlayerSettings(
 	board_size=7,
-	place_bias=MarkPlaceBias.ZEROES_FIRST | MarkPlaceBias.SCAN | MarkPlaceBias.FILL_FIRST_THEN_JOIN
+	place_bias= MarkPlaceBias.RANDOM
 )
 
 print(f"Game count: {gameCount}")
 print(playSettings)
-scoreSum: float = 0
-markSum: float = 0
+
+collectors: list[AverageCollector | MinMaxCollector] = [
+    AverageCollector(lambda r: r.Sum, "sum"),
+    AverageCollector(lambda r: r.Score, "score"),
+    AverageCollector(lambda r: r.Marks, "marks"),
+    MinMaxCollector(lambda r: r.Sum, "sum"),
+    MinMaxCollector(lambda r: r.Score, "score"),
+    MinMaxCollector(lambda r: r.Marks, "marks"),
+]
+
 markSumPerHand: dict[int,int] = {}
 freeCellsSum: dict[int,int] = {}
 lastChecked: int = 0
@@ -29,16 +38,20 @@ for i in range(gameCount):
 			freeCellsSum[hand_index] = 0
 		markSumPerHand[hand_index] += hand.Marks
 		freeCellsSum[hand_index] += (playSettings.board_size*playSettings.board_size - hand.Filled)
-	markSum += player.result.Marks
+	for collector in collectors:
+		if isinstance(collector, AverageCollector):
+			collector.update(player.result)
+		else:
+			collector.try_result(player.Board, player.result)
 	if i - lastChecked >= r:
 		lastChecked = i
 		p: int = int((i/gameCount)*100)
-		print(f"progress: {p}% ({i} out of {gameCount})")
-	scoreSum += player.result.Score 
+		print(f"\rprogress: {p}% ({i} out of {gameCount})",end="")
 	#print(f"Game {i+1} ended with score {player.result.Score}")
 	#print(player.Board)
-print(f"Game average score: {scoreSum/gameCount}")
-print(f"Game average mark sum: {markSum/gameCount}")
+print()
+for collector in collectors:
+    collector.report()
 print("Free cells per hand:")
 for hand_index in freeCellsSum.keys():
 	print(f"{hand_index} -> {freeCellsSum[hand_index]/gameCount}")

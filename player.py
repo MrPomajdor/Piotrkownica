@@ -30,6 +30,10 @@ class MarkPlaceBias(Flag):
 	CORNERS_FIRST = 8
 	ZEROES_FIRST = 16
 	FILL_FIRST_THEN_JOIN = 32
+class ArrangeBias(Flag):
+	RANDOM = 1
+	ORDERED = 2
+	SEPARATE_ZEROES = 4
 class PlayerSettings:
 	def __init__(self, place_bias: MarkPlaceBias, board_size: int = 7, max_sum: int=20):
 		self.board_size: int = board_size
