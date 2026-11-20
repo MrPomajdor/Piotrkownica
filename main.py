@@ -5,8 +5,7 @@ from player import GamePlayer, MarkPlaceBias, PlayerSettings
 gameCount: int = int(argv[1])
 playSettings: PlayerSettings = PlayerSettings(
 	board_size=7,
-	placeBias=MarkPlaceBias.TOP_LEFT_TO_RIGHT,
-	priotitizeZeroes=True
+	place_bias=MarkPlaceBias.CORNERS_FIRST | MarkPlaceBias.ZEROES_FIRST | MarkPlaceBias.SCAN
 )
 
 print(f"Game count: {gameCount}")
@@ -16,7 +15,8 @@ markSum: dict[int,int] = {}
 freeCellsSum: dict[int,int] = {}
 lastChecked: int = 0
 
-reportFrequency: float = 0.99
+reportFrequency: float = 0.99 
+
 r: int = int(gameCount * (1-reportFrequency))
 for i in range(gameCount):
 	player: GamePlayer = GamePlayer(playSettings)

@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import  Flag
 from typing import override
 from game import pos, Board, CellType, Cell
 import random
@@ -23,38 +23,57 @@ class GameResult:
 -------------------------------
 """
 		return res
-class MarkPlaceBias(Enum):
-		RANDOM = 0
-		TOP_LEFT_TO_RIGHT = 1,
-		TOP_RIGHT_TO_LEFT = 2
+
+class MarkPlaceBias(Flag):
+	RANDOM = 1
+	SCAN = 2
+	CORNERS_FIRST = 8
+	ZEROES_FIRST = 16
 
 class PlayerSettings:
-	def __init__(self, board_size: int = 7, placeBias: MarkPlaceBias = MarkPlaceBias.TOP_LEFT_TO_RIGHT, priotitizeZeroes: bool = True):
+	def __init__(self, place_bias: MarkPlaceBias, board_size: int = 7, max_sum: int=20):
 		self.board_size: int = board_size
-		self.placeBias: MarkPlaceBias = placeBias
-		self.priotitizeZeroes: bool = priotitizeZeroes
+		self.placeBias: MarkPlaceBias = place_bias
+		self.maxSum: int = max_sum
 	@override
 	def __str__(self) -> str:
 		return f"""--------------Game Settings--------------
   Board Size: {self.board_size}
   Place Bias: {self.placeBias}
-  Prioritize zeroes when choosing: {self.priotitizeZeroes}
+  Max Sum Per Mark: {self.maxSum}
 -----------------------------------------
 """
 class GamePlayer:
 	def __init__(self,playSettings: PlayerSettings):
+		if MarkPlaceBias.RANDOM in playSettings.placeBias and MarkPlaceBias.SCAN in playSettings.placeBias:
+			raise Exception("Mark place bias cannot be both RANDOM and SCAN!")
+
 		self.playSettings: PlayerSettings = playSettings
 		self.Board: Board = Board(self.playSettings.board_size)
 		self.result: GameResult = GameResult()
 		self.zeroes: list[tuple[int,int]] = []
 		self.positionsToCheck: list[tuple[int,int]] = []
 		self.result.BoardSize = self.Board.Size
-		for x in range(self.Board.Size):
-			for y in range(self.Board.Size):
+
+		corners: list[tuple[int,int]] = [
+			(1,1),
+			(self.playSettings.board_size-2,self.playSettings.board_size-2),
+			(1,self.playSettings.board_size-2),
+			(self.playSettings.board_size-2,1),
+		]
+		
+		for x in range(self.playSettings.board_size):
+			for y in range(self.playSettings.board_size):
+				if MarkPlaceBias.CORNERS_FIRST in self.playSettings.placeBias and (x,y) in corners:
+					continue
 				self.positionsToCheck.append((x,y))
-			
-		if self.playSettings.placeBias == MarkPlaceBias.RANDOM:
+
+		if MarkPlaceBias.RANDOM in self.playSettings.placeBias:
 			random.shuffle(self.positionsToCheck)
+		
+		if MarkPlaceBias.CORNERS_FIRST in self.playSettings.placeBias:
+			for c in corners.__reversed__():
+				self.positionsToCheck.insert(0,c)
 	def __iter__(self):
 		return self
 	def __next__(self) -> GameResult:
@@ -66,7 +85,7 @@ class GamePlayer:
 		if len(self.zeroes) > 0:
 			#print(f"Zeroes found: {self.zeroes}")
 			self.result.EndZeroes += len(self.zeroes)
-			if self.playSettings.priotitizeZeroes:
+			if MarkPlaceBias.ZEROES_FIRST in self.playSettings.placeBias:
 				for zero in self.zeroes:
 					self.positionsToCheck.remove(zero)
 					self.positionsToCheck.insert(0,zero)
@@ -151,7 +170,7 @@ class GamePlayer:
 
 	# returns (amount, sum)
 	def dicesRoll(self)-> tuple[int,int]:
-		return (random.randrange(1,9),random.randrange(1,20))
+		return (random.randrange(1,9),random.randrange(1,self.playSettings.maxSum))
 
 	def arrangeComposite(self,x:int, y:int, _arr: list[int])-> list[int | None]:
 		arr: list[int|None] = [None]*8
